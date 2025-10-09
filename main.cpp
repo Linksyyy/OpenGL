@@ -96,22 +96,33 @@ int main() {
   
   // # vertices
   float vertices[] = {
-    -0.5, -0.5, 0.0,
-    0.5, -0.5, 0.0,
-    0.0, 0.5, 0.0
+    0.5f,  0.5f, 0.0f,  // top right
+    0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f,  0.5f, 0.0f,  // top left 
+    -0.5f, -0.5f, 0.0f,  // bottom left
   };
 
-  unsigned int VBO;
+  unsigned int indices[] = {
+    0, 1, 2,
+    1, 2, 3
+  };
+  
+  unsigned int VBO; // Vertex Buffer Object
   glGenBuffers(1, &VBO);
 
-  // # VAO ( Vertex Array Object )
-  unsigned int VAO;
+  unsigned int VAO; // Vertex Array Object
   glGenVertexArrays(1, &VAO);
+
+  unsigned int EBO; // Element Buffer Object
+  glGenBuffers(1, &EBO);
   
   glBindVertexArray(VAO); 
   
   glBindBuffer(GL_ARRAY_BUFFER, VBO); 
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
   
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
@@ -127,8 +138,8 @@ int main() {
 
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     
     glfwSwapBuffers(window);
     glfwPollEvents();
