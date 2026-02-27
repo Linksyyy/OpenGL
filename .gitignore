@@ -1,0 +1,23 @@
+# Build artifacts
+build/
+out/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+
+# vcpkg
+vcpkg_installed/
+
+# User-specific files
+CMakeUserPresets.json
+.vs/
+.vscode/
+
+# Binary files
+*.out
+*.exe
+*.dll
+*.so
