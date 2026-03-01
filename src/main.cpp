@@ -6,6 +6,7 @@
 
 char title[] = "Bah tche slk";
 
+void processInput(GLFWwindow *window);
 void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
 
 int main() {
@@ -26,14 +27,14 @@ int main() {
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
 
   float vertices[] = {
-      // position     |   //color   | //texCoords
-      0.5,  0.5,  0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-      -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, // down left
-      0.5,  -0.5, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // top left
-      -0.5, 0.5,  0.0, 0.0, 0.0, 0.0, 0.0, 1.0, // down right
+      // position     |   //color   | // texCoords
+      0.5,  0.5,  0.0, 1.0, 0.0, 0.0, 1, 1, // top right
+      -0.5, 0.5,  0.0, 0.0, 1.0, 0.0, 0, 1, // top left
+      -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0, 0, // down left
+      0.5,  -0.5, 0.0, 0.0, 0.0, 0.0, 1, 0, // down right
   };
 
-  int indices[] = {0, 1, 2, 0, 1, 3};
+  int indices[] = {0, 1, 2, 0, 2, 3};
 
   unsigned int VAO, VBO, EBO;
   glGenVertexArrays(1, &VAO);
@@ -54,22 +55,32 @@ int main() {
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  unsigned int texture[2];
+  glGenTextures(2, texture);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture[0]);
 
   int width, height, nrChannels;
-  unsigned char *data = stbi_load("assets/dirt.jpg", &width, &height, &nrChannels, 0);
+  stbi_set_flip_vertically_on_load(true);
+  unsigned char *data = stbi_load("assets/dirt.png", &width, &height, &nrChannels, 0);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
+
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, texture[1]);
+
+  data = stbi_load("assets/awesomeface.png", &width, &height, &nrChannels, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   stbi_image_free(data);
 
@@ -78,12 +89,26 @@ int main() {
   glClearColor(0, 0, 0, 0);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+  ourShader.use();
+  ourShader.setInt("texture1", 0);
+  ourShader.setInt("texture2", 1);
+
+  static float visible = 0.0f;
   while (!glfwWindowShouldClose(window)) {
     glClear(GL_COLOR_BUFFER_BIT);
+    processInput(window);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+      visible += 0.1f;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+      visible -= 0.1f;
 
     ourShader.use();
-    ourShader.setFloat("offset", 0.2f);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    ourShader.setFloat("visible", visible);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -93,6 +118,11 @@ int main() {
   glfwTerminate();
 }
 
+void processInput(GLFWwindow *window) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    glfwSetWindowShouldClose(window, true);
+  }
+}
 void frameBufferSizeCallback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
 }
