@@ -2,7 +2,12 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <Shader.hpp>
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/trigonometric.hpp"
 #include "stb_image.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 char title[] = "Bah tche slk";
 
@@ -93,18 +98,32 @@ int main() {
   ourShader.setInt("texture1", 0);
   ourShader.setInt("texture2", 1);
 
-  static float visible = 0.0f;
+  float speed = 0.1;
+  float x = 0, y = 0, z = 0;
+
   while (!glfwWindowShouldClose(window)) {
     glClear(GL_COLOR_BUFFER_BIT);
     processInput(window);
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-      visible += 0.1f;
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-      visible -= 0.1f;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+      y += speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+      y += -speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+      x += -speed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+      x += speed;
+    }
+
+    glm::mat4 trans = glm::mat4(1.0);
+    trans = glm::scale(trans, glm::vec3(0.2, 0.2, 0.2));
+    trans = glm::translate(trans, glm::vec3(x, y, z));
+    ourShader.setMat4("transform", trans);
 
     ourShader.use();
-    ourShader.setFloat("visible", visible);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture[0]);
     glActiveTexture(GL_TEXTURE1);

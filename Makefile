@@ -1,6 +1,6 @@
 CXX = clang++
 
-INCLUDES = -I$(HOME)/.lib/glfw-3.4/include -I$(HOME)/.lib/glad/include -Iincludes
+INCLUDES = -I$(HOME)/.lib/glfw-3.4/include -I$(HOME)/.lib/glad/include -I$(HOME)/.lib/glm -Iincludes
 
 LDFLAGS = -L$(HOME)/.lib/glfw-3.4/build/src -Wl,-rpath,$(HOME)/.lib/glfw-3.4/build/src
 

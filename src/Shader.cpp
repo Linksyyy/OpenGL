@@ -1,4 +1,5 @@
 #include "Shader.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -39,8 +40,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath) {
   glGetShaderiv(vertex, GL_COMPILE_STATUS, &sucess);
   if (!sucess) {
     glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
   }
 
   fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -49,8 +49,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath) {
   glGetShaderiv(fragment, GL_COMPILE_STATUS, &sucess);
   if (!sucess) {
     glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
   }
 
   this->ID = glCreateProgram();
@@ -60,8 +59,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath) {
   glGetProgramiv(this->ID, GL_LINK_STATUS, &sucess);
   if (!sucess) {
     glGetProgramInfoLog(this->ID, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-              << infoLog << std::endl;
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
   }
 
   glDeleteShader(vertex);
@@ -78,4 +76,8 @@ void Shader::setBool(const std::string &name, bool value) const {
 }
 void Shader::setFloat(const std::string &name, float value) const {
   glUniform1f(glGetUniformLocation(this->ID, name.c_str()), value);
+}
+void Shader::setMat4(const std::string &name, glm::mat4 &value) {
+  glUniformMatrix4fv(glGetUniformLocation(this->ID, name.c_str()), 1, GL_FALSE,
+                     glm::value_ptr(value));
 }

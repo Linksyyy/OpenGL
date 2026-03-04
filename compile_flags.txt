@@ -1,4 +1,5 @@
 -I/home/linksyyy/.lib/glfw-3.4/include
 -I/home/linksyyy/.lib/glad/include
+-I/home/linksyyy/.lib/glm
 -I/home/linksyyy/Desktop/opengl/includes
 -std=c++20
