@@ -11,6 +11,8 @@
 
 char title[] = "Bah tche slk";
 
+int VIEW_WIDTH{931}, VIEW_HEIGHT{961};
+
 void processInput(GLFWwindow *window);
 void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
 
@@ -20,7 +22,7 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(931, 961, title, NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(VIEW_WIDTH, VIEW_HEIGHT, title, NULL, NULL);
   if (!window) {
     std::cout << "Failed to create window" << std::endl;
     return -1;
@@ -28,53 +30,64 @@ int main() {
   glfwMakeContextCurrent(window);
 
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-  glViewport(0, 0, 931, 961);
+  glViewport(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
   glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
 
   float vertices[] = {
-      // position     |   //color   | // texCoords
-      0.5,  0.5,  0.0, 1.0, 0.0, 0.0, 1, 1, // top right
-      -0.5, 0.5,  0.0, 0.0, 1.0, 0.0, 0, 1, // top left
-      -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0, 0, // down left
-      0.5,  -0.5, 0.0, 0.0, 0.0, 0.0, 1, 0, // down right
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
+      0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+
+      -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
+      0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+      -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
+      0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f,
   };
 
-  int indices[] = {0, 1, 2, 0, 2, 3};
+  glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f),
+  };
 
-  unsigned int VAO, VBO, EBO;
+  unsigned int VAO, VBO;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
-  glGenBuffers(1, &EBO);
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-  int stride = 8 * sizeof(float);
+  int stride = 5 * sizeof(float);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
 
-  unsigned int texture[2];
-  glGenTextures(2, texture);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture[0]);
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(true);
   unsigned char *data = stbi_load("assets/dirt.png", &width, &height, &nrChannels, 0);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, texture[1]);
-
-  data = stbi_load("assets/awesomeface.png", &width, &height, &nrChannels, 0);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -84,9 +97,6 @@ int main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_CLAMP_TO_EDGE);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
   stbi_image_free(data);
 
   Shader ourShader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
@@ -95,42 +105,61 @@ int main() {
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   ourShader.use();
-  ourShader.setInt("texture1", 0);
-  ourShader.setInt("texture2", 1);
+  ourShader.setInt("texture", 0);
 
-  float speed = 0.1;
-  float x = 0, y = 0, z = 0;
-
+  int rx{0}, ry{0};
+  int x{0}, y{0}, z{0};
+  glEnable(GL_DEPTH_TEST);
   while (!glfwWindowShouldClose(window)) {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     processInput(window);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-      y += speed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-      y += -speed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-      x += -speed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-      x += speed;
-    }
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+      rx--;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+      ry--;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+      rx++;
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+      ry++;
 
-    glm::mat4 trans = glm::mat4(1.0);
-    trans = glm::scale(trans, glm::vec3(0.2, 0.2, 0.2));
-    trans = glm::translate(trans, glm::vec3(x, y, z));
-    ourShader.setMat4("transform", trans);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      z++;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      x++;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      z--;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      x--;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+      y--;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      y++;
+
+    glm::mat4 projection =
+        glm::perspective(glm::radians(90.0f), (float)VIEW_WIDTH / (float)VIEW_HEIGHT, 0.1f, 100.0f);
+    projection = glm::rotate(projection, 0.03f * (float)rx, glm::vec3(1.0, 0.0, 0.0));
+    projection = glm::rotate(projection, 0.03f * (float)ry, glm::vec3(0.0, 1.0, 0.0));
+    ourShader.setMat4("projection", projection);
+
+    glm::mat4 view = glm::mat4(1.0);
+    view = glm::translate(view, glm::vec3(0.0, 0.0, -2.0));
+    view = glm::translate(view, glm::vec3(0.1 * x, 0.1 * y, 0.1 * z));
+    ourShader.setMat4("view", view);
 
     ourShader.use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture[1]);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for (int i = 0; i < 10; i++) {
+      glm::mat4 model = glm::mat4(1.0f);
+      model = glm::translate(model, cubePositions[i]);
+      float angle = 20.0f * (float)i;
+      model = glm::rotate(model, angle + 11.0f, glm::vec3(0.5, 1.0, 2.0));
+      model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(2.0, 1.0, 0.5));
+      ourShader.setMat4("model", model);
 
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
@@ -138,10 +167,13 @@ int main() {
 }
 
 void processInput(GLFWwindow *window) {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
 }
 void frameBufferSizeCallback(GLFWwindow *window, int width, int height) {
+  VIEW_WIDTH = width;
+  VIEW_HEIGHT = height;
   glViewport(0, 0, width, height);
 }
