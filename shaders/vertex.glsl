@@ -9,8 +9,11 @@ out vec2 texCoord;
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
+uniform float time;
 
 void main() {
-  gl_Position = projection * view *  model * vec4(aPos, 1.0);
+  vec3 pos = aPos;
+
+  gl_Position = projection * view * model * vec4(pos, 1.0);
   texCoord = aTexCoord;
 }

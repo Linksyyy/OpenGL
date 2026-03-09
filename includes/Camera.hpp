@@ -3,11 +3,12 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include "glm/geometric.hpp"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT };
+enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, FASTER, UP, DOWN };
 
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
@@ -52,16 +53,21 @@ public:
 
   glm::mat4 GetViewMatrix() { return glm::lookAt(Position, Position + Front, Up); }
 
-  void ProcessKeyboard(Camera_Movement direction, float deltaTime) {
-    float velocity = MovementSpeed * deltaTime;
+  void ProcessKeyboard(Camera_Movement direction, float deltaTime, float speedMultiplier = 1) {
+    float velocity = MovementSpeed * deltaTime * speedMultiplier;
+
     if (direction == FORWARD)
-      Position += Front * velocity;
+      Position += glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
     if (direction == BACKWARD)
-      Position -= Front * velocity;
+      Position -= glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
     if (direction == LEFT)
       Position -= Right * velocity;
     if (direction == RIGHT)
       Position += Right * velocity;
+    if (direction == UP)
+      Position += WorldUp * velocity;
+    if (direction == DOWN)
+      Position -= WorldUp * velocity;
   }
 
   void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
