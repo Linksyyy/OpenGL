@@ -8,7 +8,7 @@ LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl
 
 TARGET = build/out
 
-SOURCES = main.cpp Shader.cpp stb_image.cpp
+SOURCES = main.cpp stb_image.cpp
 
 GLAD_SRC = $(HOME)/.lib/glad/src/glad.c
 GLAD_OBJ = build/glad.o
