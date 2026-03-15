@@ -95,12 +95,13 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model = glm::mat4(1.0f);
 
-    cube.Draw(lightShader);
+    lightShader.Use();
     lightShader.SetMat4("projection", projection);
     lightShader.SetMat4("view", view);
     model = glm::translate(model, lightPos);
     model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
     lightShader.SetMat4("model", model);
+    cube.Draw();
 
     glm::vec3 initialLightPos = glm::vec3(0.0f, 9.0f, 10.0f);
     glm::mat4 lightModel(1.0f);
@@ -109,12 +110,12 @@ int main() {
 
     lightPos = glm::vec3(lightModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-    int worldSize = 100;
+    shader.Use();
+    int worldSize = 80;
     for (int i = 0; i < worldSize; i++) {
       for (int j = 0; j < worldSize; j++) {
         int noise = perlin.noise((double)i * 0.05, (double)j * 0.05) * 3.0;
         for (int k = 0; k < noise + 4; k++) {
-          cube.Draw(shader);
           shader.SetMat4("projection", projection);
           shader.SetMat4("view", view);
           model = glm::mat4(1.0f);
@@ -123,6 +124,7 @@ int main() {
           shader.SetVec3("objectColor", glm::vec3(1, 1, 1));
           shader.SetVec3("lightColor", glm::vec3(1, 1, 1));
           shader.SetVec3("lightPos", lightPos);
+          cube.Draw();
         }
       }
     }

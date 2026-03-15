@@ -50,8 +50,7 @@ public:
     glDeleteBuffers(1, &EBO);
   }
 
-  void Draw(Shader &shader) const {
-    shader.Use();
+  void Draw() const {
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
   }
