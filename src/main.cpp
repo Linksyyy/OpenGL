@@ -1,20 +1,26 @@
 #include "Geometry/Cube.hpp"
+#include "Perlin.hpp"
+#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <Core/Window.hpp>
 #include <Core/Shader.hpp>
 #include <Core/Camera.hpp>
 #include <Core/stb_image.hpp>
 
-char title[] = "Bah tche slk";
+PerlinNoise perlin(123);
+
 float deltaTime{0.0}, lastFrame{0.0f};
 
 Camera camera(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f), 225.0f, -32.5f);
+
+glm::vec3 lightPos(0, 0, 0);
 
 int VIEW_WIDTH{931}, VIEW_HEIGHT{961};
 
@@ -24,30 +30,18 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos);
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset);
 
 int main() {
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-  GLFWwindow *window = glfwCreateWindow(VIEW_WIDTH, VIEW_HEIGHT, title, NULL, NULL);
-  if (!window) {
-    std::cout << "Failed to create window" << std::endl;
-    return -1;
-  }
-  glfwMakeContextCurrent(window);
-
-  gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-  glViewport(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-  glfwSetCursorPosCallback(window, mouseCallback);
-  glfwSetScrollCallback(window, scrollCallback);
+  Window window("Bah tche slk", VIEW_WIDTH, VIEW_HEIGHT);
+  window.SetCursorPosCallback(mouseCallback);
+  window.SetFrameBufferSizeCallback(frameBufferSizeCallback);
+  window.SetScrollCallback(scrollCallback);
 
   float axisOffset = 10000.0f;
   float axisVertices[] = {
       -axisOffset, 0.0f,       0.0f, axisOffset, 0.0f, 0.0f,        0.0f, -axisOffset, 0.0f,
       0.0f,        axisOffset, 0.0f, 0.0f,       0.0f, -axisOffset, 0.0f, 0.0f,        axisOffset,
   };
+
+  Shader axisShader("./shaders/debug/axis_v.glsl", "./shaders/debug/axis_f.glsl");
 
   unsigned int axisVBO, axisVAO;
   glGenVertexArrays(1, &axisVAO);
@@ -59,8 +53,6 @@ int main() {
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
-
-  Shader axisShader("./shaders/debug/axis_v.glsl", "./shaders/debug/axis_f.glsl");
 
   unsigned int texture;
   glGenTextures(1, &texture);
@@ -80,19 +72,19 @@ int main() {
 
   stbi_image_free(data);
 
-  Shader ourShader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
-
-  // glClearColor(0.51f, 0.79f, 1.0f, 1.0f);
-  glClearColor(0, 0, 0, 0);
+  glClearColor(0.1058, 0.1616, 0.1844, 1);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   Cube cube;
 
+  Shader shader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
+  Shader lightShader("./shaders/vertex.glsl", "./shaders/light_f.glsl");
+
   glEnable(GL_DEPTH_TEST);
 
-  while (!glfwWindowShouldClose(window)) {
+  while (!glfwWindowShouldClose(window.GetWindow())) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    processInput(window);
+    processInput(window.GetWindow());
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
@@ -103,10 +95,37 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model = glm::mat4(1.0f);
 
-    cube.Draw(ourShader);
-    ourShader.SetMat4("projection", projection);
-    ourShader.SetMat4("view", view);
-    ourShader.SetMat4("model", model);
+    cube.Draw(lightShader);
+    lightShader.SetMat4("projection", projection);
+    lightShader.SetMat4("view", view);
+    model = glm::translate(model, lightPos);
+    model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
+    lightShader.SetMat4("model", model);
+
+    glm::vec3 initialLightPos = glm::vec3(0.0f, 9.0f, 10.0f);
+    glm::mat4 lightModel(1.0f);
+    lightModel = glm::rotate(lightModel, (float)glfwGetTime(), glm::vec3(0, 1, 0));
+    lightModel = glm::translate(lightModel, initialLightPos);
+
+    lightPos = glm::vec3(lightModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    int worldSize = 100;
+    for (int i = 0; i < worldSize; i++) {
+      for (int j = 0; j < worldSize; j++) {
+        int noise = perlin.noise((double)i * 0.05, (double)j * 0.05) * 3.0;
+        for (int k = 0; k < noise + 4; k++) {
+          cube.Draw(shader);
+          shader.SetMat4("projection", projection);
+          shader.SetMat4("view", view);
+          model = glm::mat4(1.0f);
+          model = glm::translate(model, glm::vec3(i - worldSize / 2, noise - k, j - worldSize / 2));
+          shader.SetMat4("model", model);
+          shader.SetVec3("objectColor", glm::vec3(1, 1, 1));
+          shader.SetVec3("lightColor", glm::vec3(1, 1, 1));
+          shader.SetVec3("lightPos", lightPos);
+        }
+      }
+    }
 
     axisShader.Use();
     axisShader.SetMat4("projection", projection);
@@ -115,7 +134,7 @@ int main() {
     glBindVertexArray(axisVAO);
     glDrawArrays(GL_LINES, 0, 6);
 
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(window.GetWindow());
     glfwPollEvents();
 
     camera.logPosition();
@@ -127,7 +146,7 @@ void processInput(GLFWwindow *window) {
   float normalSpeed = 4.0f;
   float speedMultiplier = normalSpeed;
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    speedMultiplier *= 5.0f;
+    speedMultiplier *= 3.0f;
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime, speedMultiplier);
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
