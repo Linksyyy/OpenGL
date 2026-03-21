@@ -14,7 +14,7 @@
 #include <Core/Camera.hpp>
 #include <Core/stb_image.hpp>
 
-PerlinNoise perlin(123);
+PerlinNoise perlin(90);
 
 float deltaTime{0.0}, lastFrame{0.0f};
 
@@ -56,10 +56,11 @@ int main() {
 
   unsigned int texture;
   glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(true);
-  unsigned char *data = stbi_load("./assets/dirt.png", &width, &height, &nrChannels, 0);
+  unsigned char *data = stbi_load("./assets/bricks.png", &width, &height, &nrChannels, 0);
   GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
   glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
@@ -71,6 +72,7 @@ int main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   stbi_image_free(data);
+  glBindTexture(GL_TEXTURE_2D, 0);
 
   glClearColor(0.1058, 0.1616, 0.1844, 1);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -93,7 +95,7 @@ int main() {
     glm::mat4 projection = glm::perspective(glm::radians(camera.GetZoom()),
                                             (float)VIEW_WIDTH / (float)VIEW_HEIGHT, 0.1f, 4000.0f);
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 model(1.0f);
 
     lightShader.Use();
     lightShader.SetMat4("projection", projection);
@@ -101,31 +103,41 @@ int main() {
     model = glm::translate(model, lightPos);
     model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
     lightShader.SetMat4("model", model);
-    cube.Draw();
-
     glm::vec3 initialLightPos = glm::vec3(0.0f, 9.0f, 10.0f);
     glm::mat4 lightModel(1.0f);
-    lightModel = glm::rotate(lightModel, (float)glfwGetTime(), glm::vec3(0, 1, 0));
+    lightModel = glm::rotate(lightModel, (float)glfwGetTime() * 2.0f, glm::vec3(0, 1, 0));
     lightModel = glm::translate(lightModel, initialLightPos);
-
     lightPos = glm::vec3(lightModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    cube.Draw();
 
     shader.Use();
-    int worldSize = 80;
-    for (int i = 0; i < worldSize; i++) {
-      for (int j = 0; j < worldSize; j++) {
-        int noise = perlin.noise((double)i * 0.05, (double)j * 0.05) * 3.0;
-        for (int k = 0; k < noise + 4; k++) {
-          shader.SetMat4("projection", projection);
-          shader.SetMat4("view", view);
-          model = glm::mat4(1.0f);
-          model = glm::translate(model, glm::vec3(i - worldSize / 2, noise - k, j - worldSize / 2));
-          shader.SetMat4("model", model);
-          shader.SetVec3("objectColor", glm::vec3(1, 1, 1));
-          shader.SetVec3("lightColor", glm::vec3(1, 1, 1));
-          shader.SetVec3("lightPos", lightPos);
-          cube.Draw();
+    shader.SetMat4("projection", projection);
+    shader.SetMat4("view", view);
+    shader.SetVec3("objectColor", glm::vec3(1, 1, 1));
+    shader.SetVec3("lightColor", glm::vec3(1, 1, 1));
+    shader.SetVec3("cameraPos", camera.GetPosition());
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    int worldSize = 127;
+    int viewRange = 80;
+    glm::vec3 cameraPos = camera.GetPosition();
+    for (int i = cameraPos.x - viewRange; i < cameraPos.x + viewRange; i++) {
+      for (int j = cameraPos.z - viewRange; j < cameraPos.z + viewRange; j++) {
+        int dx = i - cameraPos.x;
+        int dz = j - cameraPos.z;
+        if (sqrt(dx * dx + dz * dz) > viewRange) {
+          continue;
         }
+
+        int noise = perlin.noise((double)i * 0.05f, (double)j * 0.05f) * 3.0f;
+
+        // for (int k = 0; k <= noise + 4; k++) {
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(i, noise, j));
+        shader.SetMat4("model", model);
+        shader.SetVec3("lightPos", lightPos);
+        cube.Draw();
+        // }
       }
     }
 
