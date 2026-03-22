@@ -1,18 +1,21 @@
-#include "Geometry/Cube.hpp"
-#include "Perlin.hpp"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/matrix_transform.hpp"
 #include <glad/glad.h>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <Core/Window.hpp>
-#include <Core/Shader.hpp>
-#include <Core/Camera.hpp>
-#include <Core/stb_image.hpp>
+#include <vector>
+
+#include "Core/Window.hpp"
+#include "Core/Shader.hpp"
+#include "Core/Camera.hpp"
+#include "Core/stb_image.hpp"
+#include "Geometry/Cube.hpp"
+#include "Geometry/Mesh.hpp"
+#include "Perlin.hpp"
 
 PerlinNoise perlin(90);
 
@@ -36,23 +39,20 @@ int main() {
   window.SetScrollCallback(scrollCallback);
 
   float axisOffset = 10000.0f;
-  float axisVertices[] = {
+  std::vector<float> axisVertices{
       -axisOffset, 0.0f,       0.0f, axisOffset, 0.0f, 0.0f,        0.0f, -axisOffset, 0.0f,
       0.0f,        axisOffset, 0.0f, 0.0f,       0.0f, -axisOffset, 0.0f, 0.0f,        axisOffset,
   };
-
+  Mesh axis(axisVertices, GL_LINES);
   Shader axisShader("./shaders/debug/axis_v.glsl", "./shaders/debug/axis_f.glsl");
 
-  unsigned int axisVBO, axisVAO;
-  glGenVertexArrays(1, &axisVAO);
-  glGenBuffers(1, &axisVBO);
-
-  glBindVertexArray(axisVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, axisVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(axisVertices), axisVertices, GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
+  float cursorSize = 15.0f;
+  std::vector<float> cursorVertices{
+      cursorSize, 0.0f,       0.0f, -cursorSize, 0.0f,        0.0f,
+      0.0f,       cursorSize, 0.0f, 0.0f,        -cursorSize, 0.0f,
+  };
+  Mesh cursor(cursorVertices, GL_LINES);
+  Shader cursorShader("./shaders/hud/cursor_v.glsl", "./shaders/hud/cursor_f.glsl");
 
   unsigned int texture;
   glGenTextures(1, &texture);
@@ -77,27 +77,35 @@ int main() {
   glClearColor(0.1058, 0.1616, 0.1844, 1);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-  Cube cube;
-
+  Shader screenShader("./shaders/post/screen_v.glsl", "./shaders/post/screen_f.glsl");
   Shader shader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
   Shader lightShader("./shaders/vertex.glsl", "./shaders/light_f.glsl");
 
-  glEnable(GL_DEPTH_TEST);
+  Cube cube;
 
+  glEnable(GL_DEPTH_TEST);
   while (!glfwWindowShouldClose(window.GetWindow())) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     processInput(window.GetWindow());
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glm::mat4 projection = glm::perspective(glm::radians(camera.GetZoom()),
                                             (float)VIEW_WIDTH / (float)VIEW_HEIGHT, 0.1f, 4000.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model(1.0f);
 
+    glm::vec3 lightColor;
+    lightColor.x = sin(glfwGetTime() * 2.0f);
+    lightColor.y = sin(glfwGetTime() * 0.7f);
+    lightColor.z = sin(glfwGetTime() * 1.3f);
+    lightColor *= 2.0f;
+
     lightShader.Use();
+    lightShader.SetVec3("lightColor", lightColor);
     lightShader.SetMat4("projection", projection);
     lightShader.SetMat4("view", view);
     model = glm::translate(model, lightPos);
@@ -113,8 +121,15 @@ int main() {
     shader.Use();
     shader.SetMat4("projection", projection);
     shader.SetMat4("view", view);
-    shader.SetVec3("objectColor", glm::vec3(1, 1, 1));
-    shader.SetVec3("lightColor", glm::vec3(1, 1, 1));
+    shader.SetVec3("material.ambient", glm::vec3(0.1f));
+    shader.SetVec3("material.diffuse", glm::vec3(1.0f));
+    shader.SetVec3("material.specular", glm::vec3(0.3f));
+
+    shader.SetVec3("light.position", lightPos);
+    shader.SetVec3("light.ambient", lightColor * 0.2f);
+    shader.SetVec3("light.diffuse", lightColor * 0.6f);
+    shader.SetVec3("light.specular", lightColor);
+    shader.SetFloat("material.shininess", 32.0f);
     shader.SetVec3("cameraPos", camera.GetPosition());
 
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -144,9 +159,11 @@ int main() {
     axisShader.Use();
     axisShader.SetMat4("projection", projection);
     axisShader.SetMat4("view", view);
+    axis.Draw();
 
-    glBindVertexArray(axisVAO);
-    glDrawArrays(GL_LINES, 0, 6);
+    cursorShader.Use();
+    cursorShader.SetVec2("screenSize", glm::vec2((float)VIEW_WIDTH, (float)VIEW_HEIGHT));
+    cursor.Draw();
 
     glfwSwapBuffers(window.GetWindow());
     glfwPollEvents();

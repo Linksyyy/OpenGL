@@ -17,6 +17,9 @@ private:
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
 
+  std::vector<float> altVertices;
+  GLenum altMode;
+
 public:
   Mesh(const std::vector<Vertex> vertices, const std::vector<unsigned int> indices) {
     this->vertices = vertices;
@@ -44,6 +47,22 @@ public:
     glEnableVertexAttribArray(2);
   }
 
+  Mesh(const std::vector<float>& vertices, GLenum mode) {
+    this->altVertices = vertices;
+    this->altMode = mode;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, this->altVertices.size() * sizeof(float), this->altVertices.data(), GL_STATIC_DRAW);
+
+    int stride = 3 * sizeof(float);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(0);
+  }
+
   virtual ~Mesh() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
@@ -52,6 +71,11 @@ public:
 
   void Draw() const {
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
+
+    if (!indices.empty()) {
+      glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
+    } else {
+      glDrawArrays(altMode, 0, altVertices.size() / 3);
+    }
   }
 };
