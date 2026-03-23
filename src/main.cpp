@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
+#include "Core/Texture.hpp"
 #include "Core/Window.hpp"
 #include "Core/Shader.hpp"
 #include "Core/Camera.hpp"
@@ -54,26 +55,6 @@ int main() {
   Mesh cursor(cursorVertices, GL_LINES);
   Shader cursorShader("./shaders/hud/cursor_v.glsl", "./shaders/hud/cursor_f.glsl");
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  int width, height, nrChannels;
-  stbi_set_flip_vertically_on_load(true);
-  unsigned char *data = stbi_load("./assets/bricks.png", &width, &height, &nrChannels, 0);
-  GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
-  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  stbi_image_free(data);
-  glBindTexture(GL_TEXTURE_2D, 0);
-
   glClearColor(0.1058, 0.1616, 0.1844, 1);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -82,6 +63,8 @@ int main() {
   Shader lightShader("./shaders/vertex.glsl", "./shaders/light_f.glsl");
 
   Cube cube;
+  Texture containerTex("./assets/container.png");
+  Texture frameText("./assets/container_frame.png");
 
   glEnable(GL_DEPTH_TEST);
   while (!glfwWindowShouldClose(window.GetWindow())) {
@@ -98,10 +81,10 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model(1.0f);
 
-    glm::vec3 lightColor;
-    lightColor.x = sin(glfwGetTime() * 2.0f);
-    lightColor.y = sin(glfwGetTime() * 0.7f);
-    lightColor.z = sin(glfwGetTime() * 1.3f);
+    glm::vec3 lightColor(1.0f);
+    // lightColor.x = sin(glfwGetTime() * 2.0f);
+    // lightColor.y = sin(glfwGetTime() * 0.7f);
+    // lightColor.z = sin(glfwGetTime() * 1.3f);
     lightColor *= 2.0f;
 
     lightShader.Use();
@@ -109,7 +92,6 @@ int main() {
     lightShader.SetMat4("projection", projection);
     lightShader.SetMat4("view", view);
     model = glm::translate(model, lightPos);
-    model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
     lightShader.SetMat4("model", model);
     glm::vec3 initialLightPos = glm::vec3(0.0f, 9.0f, 10.0f);
     glm::mat4 lightModel(1.0f);
@@ -119,20 +101,22 @@ int main() {
     cube.Draw();
 
     shader.Use();
+    containerTex.Use(GL_TEXTURE0);
+    frameText.Use(GL_TEXTURE1);
+
     shader.SetMat4("projection", projection);
     shader.SetMat4("view", view);
     shader.SetVec3("material.ambient", glm::vec3(0.1f));
-    shader.SetVec3("material.diffuse", glm::vec3(1.0f));
-    shader.SetVec3("material.specular", glm::vec3(0.3f));
+    shader.SetInt("material.diffuse", 0);
+    shader.SetInt("material.specular", 1);
 
     shader.SetVec3("light.position", lightPos);
-    shader.SetVec3("light.ambient", lightColor * 0.2f);
+    shader.SetVec3("light.ambient", lightColor * 0.05f);
     shader.SetVec3("light.diffuse", lightColor * 0.6f);
-    shader.SetVec3("light.specular", lightColor);
-    shader.SetFloat("material.shininess", 32.0f);
+    shader.SetVec3("light.specular", lightColor * 0.8f);
+    shader.SetFloat("material.shininess", 16.0f);
     shader.SetVec3("cameraPos", camera.GetPosition());
 
-    glBindTexture(GL_TEXTURE_2D, texture);
     int worldSize = 127;
     int viewRange = 80;
     glm::vec3 cameraPos = camera.GetPosition();
@@ -146,13 +130,11 @@ int main() {
 
         int noise = perlin.noise((double)i * 0.05f, (double)j * 0.05f) * 3.0f;
 
-        // for (int k = 0; k <= noise + 4; k++) {
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(i, noise, j));
         shader.SetMat4("model", model);
         shader.SetVec3("lightPos", lightPos);
         cube.Draw();
-        // }
       }
     }
 
