@@ -39,7 +39,7 @@ void main() {
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
   vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
   vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, TexCoords)) + spec * 0.1;
-  specular *= attenuation * 0.5;
+  specular *= attenuation * 0.1;
   diffuse *= attenuation;
 
   vec3 result = ambient + diffuse + specular;

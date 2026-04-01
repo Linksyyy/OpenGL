@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iomanip>
+#include <ios>
 #include <vector>
 
 #include "Core/Texture.hpp"
@@ -15,6 +17,7 @@
 #include "Core/Camera.hpp"
 #include "Core/stb_image.hpp"
 #include "Geometry/Cube.hpp"
+#include "Geometry/Sphere.hpp"
 #include "Geometry/Mesh.hpp"
 #include "Perlin.hpp"
 
@@ -64,10 +67,23 @@ int main() {
 
   Cube cube;
   Texture containerTex("./assets/container.png");
-  Texture frameText("./assets/container_frame.png");
+  Texture frameTex("./assets/container_frame.png");
+  Texture dirtTex("./assets/dirt.png");
+
+  Sphere sphere(1.0f, 20);
 
   glEnable(GL_DEPTH_TEST);
-  while (!glfwWindowShouldClose(window.GetWindow())) {
+
+  double lastTime = 0.0;
+
+  while (!glfwWindowShouldClose(window.GetWindow())) { // render loop
+    double actualTime = glfwGetTime();
+    double fps = 1 / (actualTime - lastTime);
+    lastTime = actualTime;
+
+    std::cout << std::fixed << std::setprecision(0) << "\r" << fps << " fps" << std::flush;
+    std::cout << std::fixed << std::setprecision(0) << "\r" << fps << " fps" << std::flush;
+
     processInput(window.GetWindow());
 
     float currentFrame = glfwGetTime();
@@ -102,7 +118,7 @@ int main() {
 
     shader.Use();
     containerTex.Use(GL_TEXTURE0);
-    frameText.Use(GL_TEXTURE1);
+    frameTex.Use(GL_TEXTURE1);
 
     shader.SetMat4("projection", projection);
     shader.SetMat4("view", view);
@@ -118,7 +134,7 @@ int main() {
     shader.SetVec3("cameraPos", camera.GetPosition());
 
     int worldSize = 127;
-    int viewRange = 80;
+    int viewRange = 40;
     glm::vec3 cameraPos = camera.GetPosition();
     for (int i = cameraPos.x - viewRange; i < cameraPos.x + viewRange; i++) {
       for (int j = cameraPos.z - viewRange; j < cameraPos.z + viewRange; j++) {
@@ -128,15 +144,27 @@ int main() {
           continue;
         }
 
-        int noise = perlin.noise((double)i * 0.05f, (double)j * 0.05f) * 3.0f;
+        int normalNoise = perlin.noise(i * 0.05, j * 0.05) * 3;
+        // int extremNoise = perlin.noise(i * 0.01, j * 0.01) * 5;
+        int finalNoise = normalNoise; // + extremNoise * extremNoise;
 
+        // for (int k = finalNoise; k > -5; k--) {
         model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(i, noise, j));
+        model = glm::translate(model, glm::vec3(i, finalNoise, j));
         shader.SetMat4("model", model);
-        shader.SetVec3("lightPos", lightPos);
         cube.Draw();
+        // }
       }
     }
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0, 6, 0));
+    shader.SetMat4("model", model);
+
+    dirtTex.Use();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    sphere.Draw();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     axisShader.Use();
     axisShader.SetMat4("projection", projection);
@@ -149,8 +177,6 @@ int main() {
 
     glfwSwapBuffers(window.GetWindow());
     glfwPollEvents();
-
-    camera.logPosition();
   }
   glfwTerminate();
 }

@@ -21,7 +21,7 @@ private:
   GLenum altMode;
 
 public:
-  Mesh(const std::vector<Vertex> vertices, const std::vector<unsigned int> indices) {
+  Mesh(const std::vector<Vertex> vertices, const std::vector<GLuint> indices) {
     this->vertices = vertices;
     this->indices = indices;
 
@@ -47,7 +47,7 @@ public:
     glEnableVertexAttribArray(2);
   }
 
-  Mesh(const std::vector<float>& vertices, GLenum mode) {
+  Mesh(const std::vector<float> &vertices, GLenum mode) {
     this->altVertices = vertices;
     this->altMode = mode;
 
@@ -56,7 +56,8 @@ public:
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, this->altVertices.size() * sizeof(float), this->altVertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, this->altVertices.size() * sizeof(float),
+                 this->altVertices.data(), GL_STATIC_DRAW);
 
     int stride = 3 * sizeof(float);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
