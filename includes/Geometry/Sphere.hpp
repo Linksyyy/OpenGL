@@ -28,8 +28,8 @@ private:
         float normY = y / ratio;
         float normZ = z / ratio;
 
-        float u = (float)i / precision;
-        float v = (float)j / precision;
+        float u = -((float)j / precision);
+        float v = -(float)i / precision;
 
         vector.push_back({{x, y, z}, {normX, normY, normZ}, {u, v}});
       }

@@ -58,19 +58,19 @@ int main() {
   Mesh cursor(cursorVertices, GL_LINES);
   Shader cursorShader("./shaders/hud/cursor_v.glsl", "./shaders/hud/cursor_f.glsl");
 
-  glClearColor(0.1058, 0.1616, 0.1844, 1);
+  glClearColor(0, 0, 0, 0);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   Shader screenShader("./shaders/post/screen_v.glsl", "./shaders/post/screen_f.glsl");
   Shader shader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
   Shader lightShader("./shaders/vertex.glsl", "./shaders/light_f.glsl");
 
-  Cube cube;
-  Texture containerTex("./assets/container.png");
-  Texture frameTex("./assets/container_frame.png");
-  Texture dirtTex("./assets/dirt.png");
+  Texture earthTex("./assets/earth.jpg");
+  Texture sunTex("./assets/sun.jpg");
 
-  Sphere sphere(1.0f, 20);
+  Cube cube;
+  Sphere sphere(2.0f, 30);
+  Sphere smallSphere(0.3f, 10);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -89,6 +89,7 @@ int main() {
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+    float t = currentFrame;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -98,9 +99,6 @@ int main() {
     glm::mat4 model(1.0f);
 
     glm::vec3 lightColor(1.0f);
-    // lightColor.x = sin(glfwGetTime() * 2.0f);
-    // lightColor.y = sin(glfwGetTime() * 0.7f);
-    // lightColor.z = sin(glfwGetTime() * 1.3f);
     lightColor *= 2.0f;
 
     lightShader.Use();
@@ -109,62 +107,37 @@ int main() {
     lightShader.SetMat4("view", view);
     model = glm::translate(model, lightPos);
     lightShader.SetMat4("model", model);
-    glm::vec3 initialLightPos = glm::vec3(0.0f, 9.0f, 10.0f);
+    glm::vec3 initialLightPos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 lightModel(1.0f);
-    lightModel = glm::rotate(lightModel, (float)glfwGetTime() * 2.0f, glm::vec3(0, 1, 0));
-    lightModel = glm::translate(lightModel, initialLightPos);
     lightPos = glm::vec3(lightModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    cube.Draw();
+
+    sunTex.Use();
+    sphere.Draw();
 
     shader.Use();
-    containerTex.Use(GL_TEXTURE0);
-    frameTex.Use(GL_TEXTURE1);
 
     shader.SetMat4("projection", projection);
     shader.SetMat4("view", view);
-    shader.SetVec3("material.ambient", glm::vec3(0.1f));
+    shader.SetVec3("material.ambient", glm::vec3(0.5f));
     shader.SetInt("material.diffuse", 0);
-    shader.SetInt("material.specular", 1);
+    shader.SetInt("material.specular", 0);
 
     shader.SetVec3("light.position", lightPos);
     shader.SetVec3("light.ambient", lightColor * 0.05f);
-    shader.SetVec3("light.diffuse", lightColor * 0.6f);
+    shader.SetVec3("light.diffuse", lightColor * 1.0f);
     shader.SetVec3("light.specular", lightColor * 0.8f);
     shader.SetFloat("material.shininess", 16.0f);
     shader.SetVec3("cameraPos", camera.GetPosition());
 
-    int worldSize = 127;
-    int viewRange = 40;
-    glm::vec3 cameraPos = camera.GetPosition();
-    for (int i = cameraPos.x - viewRange; i < cameraPos.x + viewRange; i++) {
-      for (int j = cameraPos.z - viewRange; j < cameraPos.z + viewRange; j++) {
-        int dx = i - cameraPos.x;
-        int dz = j - cameraPos.z;
-        if (sqrt(dx * dx + dz * dz) > viewRange) {
-          continue;
-        }
-
-        int normalNoise = perlin.noise(i * 0.05, j * 0.05) * 3;
-        // int extremNoise = perlin.noise(i * 0.01, j * 0.01) * 5;
-        int finalNoise = normalNoise; // + extremNoise * extremNoise;
-
-        // for (int k = finalNoise; k > -5; k--) {
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(i, finalNoise, j));
-        shader.SetMat4("model", model);
-        cube.Draw();
-        // }
-      }
-    }
-
     model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0, 6, 0));
+    model = glm::rotate(model, t, glm::vec3(0, 1, 0));
+    model = glm::translate(model, glm::vec3(0, 0, 10));
+    model = glm::rotate(model, t, glm::vec3(0, 1, 0));
+    model = glm::scale(model, glm::vec3(0.4, 0.4, 0.4));
     shader.SetMat4("model", model);
 
-    dirtTex.Use();
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    earthTex.Use();
     sphere.Draw();
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     axisShader.Use();
     axisShader.SetMat4("projection", projection);
