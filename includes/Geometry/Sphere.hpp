@@ -1,4 +1,4 @@
-#pragma one
+#pragma once
 
 #include <glad/glad.h>
 #include <Geometry/Mesh.hpp>

@@ -30,7 +30,7 @@ void main() {
   float attenuation = 1.0 / (1.0 + 0.045 * dist + 0.0075 * (dist * dist));
 
   vec3 lightDir = normalize(light.position - FragPos);
-  float diff = max(dot(Normal, lightDir), 0.0) * 0.5;
+  float diff = max(dot(Normal, lightDir), 0.0) * 50;
 
   vec3 viewDir = normalize(cameraPos - FragPos);
   vec3 reflectDir = reflect(-lightDir, Normal);

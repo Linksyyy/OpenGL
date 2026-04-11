@@ -15,9 +15,10 @@ class Mesh {
 private:
   GLuint VAO, VBO, EBO;
   std::vector<Vertex> vertices;
-  std::vector<unsigned int> indices;
+  std::vector<GLuint> indices;
 
   std::vector<float> altVertices;
+  std::vector<GLuint> altIndices;
   GLenum altMode;
 
 public:
@@ -47,6 +48,28 @@ public:
     glEnableVertexAttribArray(2);
   }
 
+  Mesh(const std::vector<float> vertices, const std::vector<GLuint> indices) {
+    this->altVertices = vertices;
+    this->altIndices = indices;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, altVertices.size() * sizeof(float), altVertices.data(),
+                 GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, altIndices.size() * sizeof(unsigned int),
+                 altIndices.data(), GL_STATIC_DRAW);
+
+    int stride = 3 * sizeof(float);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(0);
+  }
+
   Mesh(const std::vector<float> &vertices, GLenum mode) {
     this->altVertices = vertices;
     this->altMode = mode;
@@ -73,10 +96,17 @@ public:
   void Draw() const {
     glBindVertexArray(VAO);
 
+    if (!altIndices.empty()) {
+      glDrawElements(GL_LINES, altIndices.size(), GL_UNSIGNED_INT, nullptr);
+      return;
+    }
     if (!indices.empty()) {
       glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
-    } else {
+      return;
+    }
+    if (!altVertices.empty()) {
       glDrawArrays(altMode, 0, altVertices.size() / 3);
+      return;
     }
   }
 };

@@ -1,16 +1,12 @@
 #include <glad/glad.h>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/trigonometric.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <iomanip>
-#include <ios>
+#include <string>
 #include <vector>
 
+#include "Celestial/Body.hpp"
+#include "Celestial/Gravity.hpp"
 #include "Core/Texture.hpp"
 #include "Core/Window.hpp"
 #include "Core/Shader.hpp"
@@ -24,10 +20,9 @@
 PerlinNoise perlin(90);
 
 float deltaTime{0.0}, lastFrame{0.0f};
+float TIME_SCALE = 2.0f;
 
-Camera camera(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.0f), 225.0f, -32.5f);
-
-glm::vec3 lightPos(0, 0, 0);
+Camera camera(glm::vec3(-20.0f, 20.0f, -20.0f), glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, -32.5f);
 
 int VIEW_WIDTH{931}, VIEW_HEIGHT{961};
 
@@ -58,6 +53,59 @@ int main() {
   Mesh cursor(cursorVertices, GL_LINES);
   Shader cursorShader("./shaders/hud/cursor_v.glsl", "./shaders/hud/cursor_f.glsl");
 
+  int spaceGridSize = 250;
+  int lineSubdivisions = 10;
+  float gridSpacing = 20.0f;
+  std::vector<float> spaceGridVertices;
+  std::vector<GLuint> spaceGridIndices;
+
+  int vertexCount = 0;
+
+  for (int i = 0; i < spaceGridSize; i++) {
+    for (int j = 0; j < spaceGridSize; j++) {
+      float x = (i - spaceGridSize / 2.0f) * gridSpacing;
+      float z = (j - spaceGridSize / 2.0f) * gridSpacing;
+
+      if (j < spaceGridSize - 1) {
+        float nextX = x;
+        float nextZ = (j + 1 - spaceGridSize / 2.0f) * gridSpacing;
+
+        for (int s = 0; s <= lineSubdivisions; s++) {
+          float t = (float)s / lineSubdivisions;
+          spaceGridVertices.push_back(x + t * (nextX - x));
+          spaceGridVertices.push_back(0.0f);
+          spaceGridVertices.push_back(z + t * (nextZ - z));
+
+          if (s < lineSubdivisions) {
+            spaceGridIndices.push_back(vertexCount);
+            spaceGridIndices.push_back(vertexCount + 1);
+          }
+          vertexCount++;
+        }
+      }
+
+      if (i < spaceGridSize - 1) {
+        float nextX = (i + 1 - spaceGridSize / 2.0f) * gridSpacing;
+        float nextZ = z;
+
+        for (int s = 0; s <= lineSubdivisions; s++) {
+          float t = (float)s / lineSubdivisions;
+          spaceGridVertices.push_back(x + t * (nextX - x));
+          spaceGridVertices.push_back(0.0f);
+          spaceGridVertices.push_back(z + t * (nextZ - z));
+
+          if (s < lineSubdivisions) {
+            spaceGridIndices.push_back(vertexCount);
+            spaceGridIndices.push_back(vertexCount + 1);
+          }
+          vertexCount++;
+        }
+      }
+    }
+  }
+  Mesh spaceGrid(spaceGridVertices, spaceGridIndices);
+  Shader spaceGridShader("./shaders/spaceGrid_v.glsl", "./shaders/spaceGrid_f.glsl");
+
   glClearColor(0, 0, 0, 0);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -65,31 +113,36 @@ int main() {
   Shader shader("./shaders/vertex.glsl", "./shaders/fragment.glsl");
   Shader lightShader("./shaders/vertex.glsl", "./shaders/light_f.glsl");
 
-  Texture earthTex("./assets/earth.jpg");
   Texture sunTex("./assets/sun.jpg");
+  Texture earthTex("./assets/earth.jpg");
+  Texture marsTex("./assets/mars.jpg");
 
   Cube cube;
-  Sphere sphere(2.0f, 30);
-  Sphere smallSphere(0.3f, 10);
+  Sphere sphere(1.0f, 30);
+
+  Body sun(&sphere, 10.0f, 3000.0f, glm::vec3(0), glm::vec3(0), &sunTex);
+  Body p1(&sphere, 3.0f, 30.0f, glm::vec3(20, 0, 0), glm::vec3(0, 0, 50), &earthTex);
+  Body p2(&sphere, 3.0f, 20.0f, glm::vec3(-20, 0, 0), glm::vec3(0, 0, -50), &marsTex);
+  Body p3(&sphere, 1.3f, 10.0f, glm::vec3(0, 0, 25), glm::vec3(10, 0, 0), &earthTex);
 
   glEnable(GL_DEPTH_TEST);
 
   double lastTime = 0.0;
 
   while (!glfwWindowShouldClose(window.GetWindow())) { // render loop
+
     double actualTime = glfwGetTime();
     double fps = 1 / (actualTime - lastTime);
     lastTime = actualTime;
 
-    std::cout << std::fixed << std::setprecision(0) << "\r" << fps << " fps" << std::flush;
-    std::cout << std::fixed << std::setprecision(0) << "\r" << fps << " fps" << std::flush;
+    std::cout << std::fixed << std::setprecision(0) << "\r" << fps << " fps"
+              << " - Time scale:" << TIME_SCALE << std::flush;
 
     processInput(window.GetWindow());
 
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-    float t = currentFrame;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -98,6 +151,32 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 model(1.0f);
 
+    std::vector<Body *> bodies = {&sun, &p1, &p2};
+
+    for (int i = 0; i < bodies.size(); i++) {
+      Body *target = bodies[i];
+
+      glm::vec3 targetAccel = Gravity::CalculateAcceleration(*target, bodies);
+
+      Gravity::UpdateVelocity(*target, targetAccel, deltaTime * TIME_SCALE);
+
+      Gravity::UpdatePosition(*target, deltaTime * TIME_SCALE);
+
+      spaceGridShader.Use();
+      model = glm::mat4(1.0f);
+      spaceGridShader.SetMat4("projection", projection);
+      spaceGridShader.SetMat4("view", view);
+      spaceGridShader.SetMat4("model", model);
+
+      std::string strIter = std::to_string(i);
+
+      spaceGridShader.SetVec3("bodys[" + strIter + "].position", target->position);
+      spaceGridShader.SetFloat("bodys[" + strIter + "].radius", target->radius);
+      spaceGridShader.SetFloat("bodys[" + strIter + "].mass", target->mass);
+      spaceGridShader.SetInt("bodyCount", bodies.size());
+      spaceGrid.Draw();
+    }
+
     glm::vec3 lightColor(1.0f);
     lightColor *= 2.0f;
 
@@ -105,39 +184,36 @@ int main() {
     lightShader.SetVec3("lightColor", lightColor);
     lightShader.SetMat4("projection", projection);
     lightShader.SetMat4("view", view);
-    model = glm::translate(model, lightPos);
+    model = glm::translate(model, sun.position);
+    model = glm::scale(model, glm::vec3(sun.radius));
     lightShader.SetMat4("model", model);
     glm::vec3 initialLightPos = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::mat4 lightModel(1.0f);
-    lightPos = glm::vec3(lightModel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-
-    sunTex.Use();
-    sphere.Draw();
+    sun.Draw();
 
     shader.Use();
-
     shader.SetMat4("projection", projection);
     shader.SetMat4("view", view);
     shader.SetVec3("material.ambient", glm::vec3(0.5f));
     shader.SetInt("material.diffuse", 0);
     shader.SetInt("material.specular", 0);
 
-    shader.SetVec3("light.position", lightPos);
+    shader.SetVec3("light.position", sun.position);
     shader.SetVec3("light.ambient", lightColor * 0.05f);
     shader.SetVec3("light.diffuse", lightColor * 1.0f);
     shader.SetVec3("light.specular", lightColor * 0.8f);
     shader.SetFloat("material.shininess", 16.0f);
     shader.SetVec3("cameraPos", camera.GetPosition());
 
-    model = glm::mat4(1.0f);
-    model = glm::rotate(model, t, glm::vec3(0, 1, 0));
-    model = glm::translate(model, glm::vec3(0, 0, 10));
-    model = glm::rotate(model, t, glm::vec3(0, 1, 0));
-    model = glm::scale(model, glm::vec3(0.4, 0.4, 0.4));
-    shader.SetMat4("model", model);
+    for (int i = 1; i < bodies.size(); i++) {
+      Body *target = bodies[i];
 
-    earthTex.Use();
-    sphere.Draw();
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, target->position);
+      model = glm::scale(model, glm::vec3(target->radius));
+      shader.SetMat4("model", model);
+      target->Draw();
+    }
 
     axisShader.Use();
     axisShader.SetMat4("projection", projection);
@@ -158,7 +234,13 @@ void processInput(GLFWwindow *window) {
   float normalSpeed = 4.0f;
   float speedMultiplier = normalSpeed;
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    speedMultiplier *= 3.0f;
+    speedMultiplier *= 6.0f;
+
+  if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    TIME_SCALE += 0.5;
+  if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    TIME_SCALE -= 0.1;
+
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime, speedMultiplier);
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -167,10 +249,13 @@ void processInput(GLFWwindow *window) {
     camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime, speedMultiplier);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime, speedMultiplier);
+
   if (glfwGetKey(window, GLFW_KEY_SPACE))
     camera.ProcessKeyboard(Camera_Movement::UP, deltaTime, normalSpeed);
+
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT))
     camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime, normalSpeed);
+
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
       glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
