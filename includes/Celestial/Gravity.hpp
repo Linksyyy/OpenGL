@@ -6,7 +6,12 @@
 
 class Gravity {
 private:
-  static constexpr float G = 5.0f;
+  // Physical gravitational constant in km^3 / (kg * s^2),
+  // converted to simulation units by the same scale factors used in Body.
+  static constexpr float G_KM = 6.67430e-20f;
+  static constexpr float G = G_KM * (Body::MASS_SCALE /
+                                     (Body::DISTANCE_SCALE * Body::DISTANCE_SCALE *
+                                      Body::DISTANCE_SCALE));
 
 public:
   static glm::vec3 CalculateForce(const Body &body1, const Body &body2) {

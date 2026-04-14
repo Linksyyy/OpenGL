@@ -6,17 +6,21 @@
 
 class Body {
 public:
+  static constexpr float RADIUS_SCALE = 2.0e3f;
+  static constexpr float MASS_SCALE = 9.0e26f;
+  static constexpr float DISTANCE_SCALE = 4.0e4f;
+
   const Mesh *mesh;
   const Texture *texture;
   glm::vec3 velocity;
   glm::vec3 position;
   const float mass;
-  const float radius;
+  float radius;
 
   Body(Mesh *mesh, float radius, float mass, glm::vec3 velocity, glm::vec3 position,
        Texture *texture)
-      : mesh(mesh), radius(radius), mass(mass), velocity(velocity), position(position),
-        texture(texture) {}
+      : mesh(mesh), velocity(velocity / DISTANCE_SCALE), position(position / DISTANCE_SCALE),
+        mass(mass / MASS_SCALE), radius(radius / RADIUS_SCALE), texture(texture) {}
 
   void Draw() {
     texture->Use();

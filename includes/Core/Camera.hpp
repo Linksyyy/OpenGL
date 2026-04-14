@@ -10,6 +10,8 @@ enum class Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
 class Camera {
 private:
+  glm::vec3 Center = glm::vec3(0.0f);
+  glm::vec3 RelativePos;
   glm::vec3 Position;
   glm::vec3 Front;
   glm::vec3 Up;
@@ -32,11 +34,12 @@ public:
          glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH)
       : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY),
         Zoom(ZOOM) {
-    Position = position;
+    RelativePos = position;
     WorldUp = up;
     Yaw = yaw;
     Pitch = pitch;
     updateCameraVectors();
+    Position = Center + RelativePos;
   }
 
   glm::mat4 GetViewMatrix() const { return glm::lookAt(Position, Position + Front, Up); }
@@ -46,17 +49,19 @@ public:
     float velocity = MovementSpeed * deltaTime * speedMultiplier;
 
     if (direction == Camera_Movement::FORWARD)
-      Position += glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
+      RelativePos += glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
     if (direction == Camera_Movement::BACKWARD)
-      Position -= glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
+      RelativePos -= glm::normalize(glm::vec3(Front.x, 0.0f, Front.z)) * velocity;
     if (direction == Camera_Movement::LEFT)
-      Position -= Right * velocity;
+      RelativePos -= Right * velocity;
     if (direction == Camera_Movement::RIGHT)
-      Position += Right * velocity;
+      RelativePos += Right * velocity;
     if (direction == Camera_Movement::UP)
-      Position += WorldUp * velocity;
+      RelativePos += WorldUp * velocity;
     if (direction == Camera_Movement::DOWN)
-      Position -= WorldUp * velocity;
+      RelativePos -= WorldUp * velocity;
+
+    Position = Center + RelativePos;
   }
 
   inline void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) {
@@ -81,10 +86,15 @@ public:
     if (Zoom < 1.0f)
       Zoom = 1.0f;
     if (Zoom > 90.0f)
-      Zoom = 90.0f;
+      Zoom = 70.0f;
   }
 
   inline glm::vec3 GetPosition() const { return Position; }
+
+  inline void SetRelativePosition(const glm::vec3 &reference) {
+    Center = reference;
+    Position = Center + RelativePos;
+  }
 
   inline void logPosition() const {
     std::cout << "\rPosition(" << this->Position.x << ", " << this->Position.y << ", "
